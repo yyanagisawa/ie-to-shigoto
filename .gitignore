@@ -1,0 +1,8 @@
+# 実データ(カレンダーID・メールアドレス)を含むため公開しない
+src/config.gs
+# 作業メモ
+tasks/
+.DS_Store
+# clasp を使う人のローカル設定(公式の導入手順はコピペのみ)
+.clasp.json
+.claspignore
