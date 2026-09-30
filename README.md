@@ -72,7 +72,7 @@ flowchart LR
 
 ## セットアップ
 
-3 ステップ、10〜15 分で終わります。画面つきの詳しい手順は [docs/setup.md](docs/setup.md) にあります。
+3 ステップ、10〜15 分で終わります。詳しい手順は [docs/setup.md](docs/setup.md) にあります。
 
 1. **共有する** — 仕事カレンダーを、個人の Gmail アドレスへ「予定の変更」権限で共有する
 2. **貼り付ける** — 個人アカウントの [script.google.com](https://script.google.com) で新しいプロジェクトを作り、`src/` の 4 ファイルを貼り付ける。`config` の `WORK_EMAIL` を仕事用アドレスに書き換え、「サービス」に Google Calendar API(識別子 `Calendar`)を追加する
