@@ -26,10 +26,10 @@ function fetchWorkOnlyEvents_(cfg, now, end) {
   cfg.WORKS.forEach(work => {
     forEachEvent_(work.email, now, end, {}, ev => {
       if (wanted.has(ev.id)) return;
-      if (workSkipReason_(ev, personalEmail, cfg.BLOCK_TITLE)) return;
+      if (workSkipReason_(ev, personalEmail)) return;
       const allDay = !ev.start.dateTime;
       wanted.set(ev.id, {
-        title: buildCopyTitle(ev, cfg.ONLINE_LOCATION_PATTERNS, work.label),
+        title: buildCopyTitle(ev, cfg.ONLINE_LOCATION_PATTERNS, work.label, cfg.PRIVATE_TITLE),
         s: allDay ? ev.start.date : ev.start.dateTime, // 終日はそのままdateで作る
         t: allDay ? ev.end.date : ev.end.dateTime,
         allDay: allDay,
@@ -40,7 +40,7 @@ function fetchWorkOnlyEvents_(cfg, now, end) {
 }
 
 // 同期2の対象外ならその理由を、対象なら '' を返す
-function workSkipReason_(ev, personalEmail, blockTitle) {
+function workSkipReason_(ev, personalEmail) {
   if (ev.status === 'cancelled') return 'キャンセル済み';
   if (ev.transparency === 'transparent') return 'free(予定なし)';
   const me = (ev.attendees || []).find(a => a.self);
@@ -48,7 +48,7 @@ function workSkipReason_(ev, personalEmail, blockTitle) {
   // 個人アドレスも招待されている予定は個人カレンダーに原本がある
   const emails = (ev.attendees || []).map(a => (a.email || '').toLowerCase());
   if (emails.includes(personalEmail)) return '個人アドレスが参加者';
-  if (ev.summary === blockTitle) return '同期1が作ったブロック';
+  if (isSyncBlock_(ev)) return '同期1が作ったブロック';
   return '';
 }
 
@@ -122,9 +122,12 @@ function sameTime_(exPart, value, allDay) {
 
 // ===== タイトル生成: 「[仕事先ラベル] 元タイトル @場所ラベル」 =====
 
-// 仕事先のラベル(例: '[F]')があれば先頭に付ける
-function buildCopyTitle(ev, onlinePatterns, workLabel) {
-  const base = (workLabel ? workLabel + ' ' : '') + (ev.summary || '(無題)');
+// 仕事先のラベル(例: '[A]')があれば先頭に付ける。
+// 仕事側で「非公開」の予定は、タイトルも場所も渡さず privateTitle だけにする(業務上の機密を家族側へ出さない)
+function buildCopyTitle(ev, onlinePatterns, workLabel, privateTitle) {
+  const prefix = workLabel ? workLabel + ' ' : '';
+  if (ev.visibility === 'private' || ev.visibility === 'confidential') return prefix + privateTitle;
+  const base = prefix + (ev.summary || '(無題)');
   const label = extractPlaceLabel(ev, onlinePatterns);
   return label ? `${base} @${label}` : base;
 }
@@ -134,7 +137,7 @@ function extractPlaceLabel(ev, onlinePatterns) {
 
   // 1. locationに物理的な場所(住所・会議室名)があれば最優先
   if (loc && !isPureUrl(loc)) {
-    // location内にURLが混在していたら除去(例: "東京都目黒区... https://meet.google.com/...")
+    // location内にURLが混在していたら除去(例: "東京都千代田区... https://meet.google.com/...")
     const physical = loc.replace(/https?:\/\/\S+/gi, '').trim();
     if (physical) return buildPhysicalLabel(physical);
   }
@@ -152,7 +155,7 @@ function isPureUrl(s) {
   return /^https?:\/\/\S+$/i.test(s.trim());
 }
 
-// 物理的なlocation文字列 → 「中目黒」「中目黒-7F-会議室B」のようなラベル
+// 物理的なlocation文字列 → 「丸の内」「丸の内-7F-会議室B」のようなラベル
 function buildPhysicalLabel(physical) {
   // 会議室・フロア情報を抽出(例: "7F 会議室B", "3階 大会議室", "Room A")
   const roomParts = [];
@@ -161,13 +164,13 @@ function buildPhysicalLabel(physical) {
   const roomM = physical.match(/((?:大|小|第\d)?会議室[\S]*|Room\s*\S+|ミーティングルーム\S*)/i);
   if (roomM) roomParts.push(roomM[1].replace(/\s+/g, ''));
 
-  // 地名を抽出(例: "東京都目黒区中目黒1-2-3" → "中目黒")
+  // 地名を抽出(例: "東京都千代田区丸の内1-2-3" → "丸の内")
   let place = '';
   // 市区町村名は1文字以上([^都道府県]+?)。「市川市」「町田市」の先頭の市・町を区切りと誤認しないため
   const addrM = physical.replace(/[〒0-9\-‐−ー]+$/, '')
     .match(/(?:都|道|府|県)?[^都道府県]+?(?:市|区|郡|町|村)([^\d\s,、0-9０-９]+)/);
   if (addrM && addrM[1]) {
-    // 「丁目」「番地」「番」「号」以降を落とす(「中目黒」の目、「築地」の地などには反応しない)。
+    // 「丁目」「番地」「番」「号」以降を落とす(「目白」の目、「築地」の地などには反応しない)。
     // 直前の漢数字も一緒に落とす(「銀座四丁目」→「銀座」)
     place = addrM[1].replace(/[一二三四五六七八九十]*(?:丁目|番地|番|号).*$/, '');
   } else {

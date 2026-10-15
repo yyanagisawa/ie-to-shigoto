@@ -11,6 +11,7 @@ const SYNC_TAG = 'personal-busy-sync';
 const DEFAULT_CONFIG_ = {
   SYNC_DAYS_AHEAD: 60,
   BLOCK_TITLE: '予定あり',
+  PRIVATE_TITLE: '仕事(非公開)',
   TRIGGER_MINUTES: 15,
   THROTTLE_EVERY: 10,
   THROTTLE_SLEEP_MS: 2000,
@@ -108,7 +109,7 @@ function syncBusyBlocks() {
     const busy = personalEvents.filter(ev => !personalSkipReason_(ev, target.email));
     workEvents.forEach((events, email) => {
       if (email === target.email) return;
-      busy.push(...events.filter(ev => !otherWorkSkipReason_(ev, target.email, cfg.BLOCK_TITLE)));
+      busy.push(...events.filter(ev => !otherWorkSkipReason_(ev, target.email)));
     });
     const intervals = busy.map(eventToInterval_).filter(([s, t]) => t > now.getTime());
     const merged = mergeIntervals_(intervals);
@@ -121,9 +122,16 @@ function syncBusyBlocks() {
 
 // 他の仕事先の予定を target のブロック材料にしないなら、その理由を返す。
 // 条件は個人の予定と同じ(target に原本がある予定は除外)+ 同期1が作ったブロックは除外(ブロックがブロックを生む循環を防ぐ)
-function otherWorkSkipReason_(ev, targetEmail, blockTitle) {
-  if (ev.summary === blockTitle) return '同期1が作ったブロック';
+function otherWorkSkipReason_(ev, targetEmail) {
+  if (isSyncBlock_(ev)) return '同期1が作ったブロック';
   return personalSkipReason_(ev, targetEmail);
+}
+
+// 同期1が作ったブロックか(Calendar.Events のイベントで判定)。タイトルではなく、作成時に setTag で付けたタグを見る。
+// setTag が extendedProperties の private / shared のどちらに入るか確証がないため、両方を見る
+function isSyncBlock_(ev) {
+  const p = ev.extendedProperties || {};
+  return (p.private || {})[SYNC_TAG] === 'true' || (p.shared || {})[SYNC_TAG] === 'true';
 }
 
 // 同期1の対象外ならその理由を、対象なら '' を返す
@@ -208,7 +216,7 @@ function getConfig_() {
   }
   // 仕事先は WORK_EMAIL(1つ)か WORKS(複数。ラベル付き)のどちらかで指定する
   const works = (CONFIG.WORKS || [{ email: CONFIG.WORK_EMAIL }]).map(w => ({ email: w.email, label: w.label || '' }));
-  if (!works.length || works.some(w => !w.email || /example\.com$/i.test(w.email))) {
+  if (!works.length || works.some(w => !w.email || /(^|[@.])example\.(com|co\.jp)$/i.test(w.email))) {
     throw new Error('config.gs の WORK_EMAIL が未設定です(サンプル値のままになっていませんか)');
   }
   // 終日予定を「スクリプトのタイムゾーンの0:00〜」として扱うため、東京以外では日付がずれる
