@@ -29,7 +29,7 @@ function fetchWorkOnlyEvents_(cfg, now, end) {
       if (workSkipReason_(ev, personalEmail)) return;
       const allDay = !ev.start.dateTime;
       wanted.set(ev.id, {
-        title: buildCopyTitle(ev, cfg.ONLINE_LOCATION_PATTERNS, work.label),
+        title: buildCopyTitle(ev, cfg.ONLINE_LOCATION_PATTERNS, work.label, cfg.PRIVATE_TITLE),
         s: allDay ? ev.start.date : ev.start.dateTime, // 終日はそのままdateで作る
         t: allDay ? ev.end.date : ev.end.dateTime,
         allDay: allDay,
@@ -122,9 +122,12 @@ function sameTime_(exPart, value, allDay) {
 
 // ===== タイトル生成: 「[仕事先ラベル] 元タイトル @場所ラベル」 =====
 
-// 仕事先のラベル(例: '[A]')があれば先頭に付ける
-function buildCopyTitle(ev, onlinePatterns, workLabel) {
-  const base = (workLabel ? workLabel + ' ' : '') + (ev.summary || '(無題)');
+// 仕事先のラベル(例: '[A]')があれば先頭に付ける。
+// 仕事側で「非公開」の予定は、タイトルも場所も渡さず privateTitle だけにする(業務上の機密を家族側へ出さない)
+function buildCopyTitle(ev, onlinePatterns, workLabel, privateTitle) {
+  const prefix = workLabel ? workLabel + ' ' : '';
+  if (ev.visibility === 'private' || ev.visibility === 'confidential') return prefix + privateTitle;
+  const base = prefix + (ev.summary || '(無題)');
   const label = extractPlaceLabel(ev, onlinePatterns);
   return label ? `${base} @${label}` : base;
 }

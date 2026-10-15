@@ -15,6 +15,7 @@ const CONFIG = {
   // ],
   // SYNC_DAYS_AHEAD: 60,       // 何日先まで同期するか
   // BLOCK_TITLE: '予定あり',    // 仕事側に作るブロックのタイトル(運用開始後に変える場合は README の FAQ を参照)
+  // PRIVATE_TITLE: '仕事(非公開)', // 仕事側で「非公開」の予定を個人側に載せるときのタイトル(元のタイトルと場所は載せない)
   // TRIGGER_MINUTES: 15,       // 自動実行の間隔(分)。1 / 5 / 10 / 15 / 30 のみ。変更後は setupTrigger を再実行
   // THROTTLE_EVERY: 10,        // レート制限対策: 書き込み何件ごとに休むか
   // THROTTLE_SLEEP_MS: 2000,   // レート制限対策: 休む長さ(ミリ秒)

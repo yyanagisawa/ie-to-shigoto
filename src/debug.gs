@@ -25,7 +25,7 @@ function debugInspectEvents() {
     Logger.log('--- 仕事カレンダー ' + work.email + '(同期2: 対象のものが個人側へコピーされる) ---');
     forEachEvent_(work.email, now, end, {}, ev => {
       const reason = workSkipReason_(ev, personalEmail);
-      const title = reason ? '' : ' → ' + buildCopyTitle(ev, cfg.ONLINE_LOCATION_PATTERNS, work.label);
+      const title = reason ? '' : ' → ' + buildCopyTitle(ev, cfg.ONLINE_LOCATION_PATTERNS, work.label, cfg.PRIVATE_TITLE);
       Logger.log(line(ev, verdict(reason)) + title);
     });
   });

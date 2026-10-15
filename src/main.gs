@@ -11,6 +11,7 @@ const SYNC_TAG = 'personal-busy-sync';
 const DEFAULT_CONFIG_ = {
   SYNC_DAYS_AHEAD: 60,
   BLOCK_TITLE: '予定あり',
+  PRIVATE_TITLE: '仕事(非公開)',
   TRIGGER_MINUTES: 15,
   THROTTLE_EVERY: 10,
   THROTTLE_SLEEP_MS: 2000,
